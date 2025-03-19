@@ -31,9 +31,22 @@ async function run() {
     const applicationCollection = client.db('jobPortal').collection('application');
 
     app.get('/jobs', async (req, res) => {
-      const cursor = jobCollection.find();
+      const email = req.query.email;
+
+      let query = {};
+      if (email) {
+        query = { hr_email: email }
+      }
+
+      const cursor = jobCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
+    })
+
+    app.post('/addJobs', async (req, res) => {
+      const newJobs = req.body;
+      const result = await jobCollection.insertOne(newJobs);
+      res.send(result)
     })
 
     app.get('/job/:id', async (req, res) => {
@@ -49,9 +62,9 @@ async function run() {
       res.send(result);
     })
 
-    app.delete('/job-application/:id', async(req, res)=>{
+    app.delete('/job-application/:id', async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const result = await applicationCollection.deleteOne(query);
       res.send(result);
     })
@@ -61,13 +74,13 @@ async function run() {
       const query = { user_email: email };
       const result = await applicationCollection.find(query).toArray();
 
-      for(const application of result){
-        const query2 = {_id: new ObjectId(application.job_id)}
+      for (const application of result) {
+        const query2 = { _id: new ObjectId(application.job_id) }
         const job = await jobCollection.findOne(query2);
-        if(job){
+        if (job) {
           application.title = job.title;
           application.company = job.company;
-          application.company_logo = job.company_logo; 
+          application.company_logo = job.company_logo;
         }
 
       }
