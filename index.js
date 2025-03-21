@@ -56,9 +56,30 @@ async function run() {
       res.send(result);
     })
 
+    // noticed that filter and query is same things, it used for search a data by condition or as you think that you provide a information for search the data like email, id etc
+
     app.post('/job-application', async (req, res) => {
       const application = req.body;
       const result = await applicationCollection.insertOne(application);
+      const id = application.job_id;
+      const query = { _id: new ObjectId(id) };
+      const job = await jobCollection.findOne(query);
+      let count = 0;
+      if(job.applicationCount){
+        count = job.applicationCount + 1;
+      }
+      else{
+        count = 1;
+      }
+      console.log(count)
+      const updateCount = {
+        $set: {
+          applicationCount: count
+        }
+      }
+
+      const updateResult = await jobCollection.updateOne(query, updateCount)
+
       res.send(result);
     })
 
