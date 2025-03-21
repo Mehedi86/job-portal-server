@@ -65,10 +65,10 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const job = await jobCollection.findOne(query);
       let count = 0;
-      if(job.applicationCount){
+      if (job.applicationCount) {
         count = job.applicationCount + 1;
       }
-      else{
+      else {
         count = 1;
       }
       console.log(count)
@@ -82,6 +82,14 @@ async function run() {
 
       res.send(result);
     })
+
+    app.get("/job-applications/jobs/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { job_id: id };
+      const result = await applicationCollection.find(query).toArray();
+      res.send(result)
+    })
+    //  notice some thing in this get operation that, in application db here save the id of the job is name of job_id so, in query we need to put here job_id in the query object as property. and also notice that params name just id and we take the id by req.params.id; so this is the noticable thing. thank you. But if you match the id with dbs object id then you need to convert it by {_id: new objectId(id)}.
 
     app.delete('/job-application/:id', async (req, res) => {
       const id = req.params.id;
