@@ -8,11 +8,31 @@ const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173'],
+  credentials: true
+}));
 app.use(express.json());
 app.use(cookieParser())
 
+const logger = (req, res, next) => {
+  console.log('the logger or the custom middleware are running');
+  next();
+}
 
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" })
+  }
+  jwt.verify(token, process.env.JWT_SEC, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" })
+    }
+    req.user = decoded;
+    next();
+  })
+}
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kpht8.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -42,7 +62,7 @@ async function run() {
           httpOnly: true,
           secure: false,
         })
-        .send({success: true})
+        .send({ success: true })
     })
 
     app.get('/jobs', async (req, res) => {
@@ -113,11 +133,15 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/job-applications', async (req, res) => {
+    app.get('/job-applications', verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = { user_email: email };
-      const result = await applicationCollection.find(query).toArray();
 
+      if(req.user.email !== req.query.email){
+        return res.status(403).send({message: 'forbidden access'})
+      }
+
+      const result = await applicationCollection.find(query).toArray();
       for (const application of result) {
         const query2 = { _id: new ObjectId(application.job_id) }
         const job = await jobCollection.findOne(query2);
