@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser')
 require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 5000;
@@ -8,6 +10,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser())
 
 
 
@@ -29,6 +32,18 @@ async function run() {
 
     const jobCollection = client.db('jobPortal').collection('jobs');
     const applicationCollection = client.db('jobPortal').collection('application');
+
+    // auth related apis
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT_SEC, { expiresIn: '1h' })
+      res
+        .cookie('token', token, {
+          httpOnly: true,
+          secure: false,
+        })
+        .send({success: true})
+    })
 
     app.get('/jobs', async (req, res) => {
       const email = req.query.email;
@@ -116,13 +131,13 @@ async function run() {
       res.send(result);
     })
 
-    app.patch('/job-application/:id', async(req, res)=>{
+    app.patch('/job-application/:id', async (req, res) => {
       const id = req.params.id;
       const data = req.body;
-      const query = {_id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const updateStatus = {
         $set: {
-          status : data
+          status: data
         }
       }
       const result = await applicationCollection.updateOne(query, updateStatus);
