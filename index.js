@@ -13,26 +13,22 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-app.use(cookieParser())
-
-const logger = (req, res, next) => {
-  console.log('the logger or the custom middleware are running');
-  next();
-}
+app.use(cookieParser());
 
 const verifyToken = (req, res, next) => {
-  const token = req?.cookies?.token;
+  const token = req?.cookies.token;
   if (!token) {
-    return res.status(401).send({ message: "unauthorized access" })
+    return res.status(401).send({ message: 'unauthorized access' });
   }
-  jwt.verify(token, process.env.JWT_SEC, (err, decoded) => {
+  jwt.verify(token, process.env.SECRET_TOKEN, (err, decoded) => {
     if (err) {
-      return res.status(401).send({ message: "unauthorized access" })
+      return res.status(401).send({ message: 'unauthorized access' })
     }
-    req.user = decoded;
     next();
   })
 }
+
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kpht8.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -54,14 +50,22 @@ async function run() {
     const applicationCollection = client.db('jobPortal').collection('application');
 
     // auth related apis
-    app.post("/jwt", async (req, res) => {
+    app.post('/jwt', (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.JWT_SEC, { expiresIn: '1h' })
+      const token = jwt.sign(user, process.env.SECRET_TOKEN, { expiresIn: '5h' });
       res
         .cookie('token', token, {
           httpOnly: true,
-          secure: false,
+          secure: false
         })
+        .send({ success: true })
+    })
+
+    app.post('/logout', (req, res) => {
+      res.clearCookie('token', {
+        httpOnly: true,
+        secure: false
+      })
         .send({ success: true })
     })
 
@@ -136,11 +140,6 @@ async function run() {
     app.get('/job-applications', verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = { user_email: email };
-
-      if(req.user.email !== req.query.email){
-        return res.status(403).send({message: 'forbidden access'})
-      }
-
       const result = await applicationCollection.find(query).toArray();
       for (const application of result) {
         const query2 = { _id: new ObjectId(application.job_id) }
@@ -186,3 +185,5 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`The server is running from the port number: ${port}`)
 })
+
+
