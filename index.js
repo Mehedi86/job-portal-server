@@ -9,7 +9,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 
 app.use(cors({
-  origin: ['http://localhost:5173'],
+  origin: ['http://localhost:5173', 'https://job-portal-cde82.web.app', 'https://job-portal-cde82.firebaseapp.com', 'https://harmonious-malasada-36c903.netlify.app'],
   credentials: true
 }));
 app.use(express.json());
@@ -45,7 +45,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const jobCollection = client.db('jobPortal').collection('jobs');
     const applicationCollection = client.db('jobPortal').collection('application');
@@ -57,7 +57,8 @@ async function run() {
       res
         .cookie('token', token, {
           httpOnly: true,
-          secure: false
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict"
         })
         .send({ success: true })
     })
@@ -65,7 +66,8 @@ async function run() {
     app.post('/logout', (req, res) => {
       res.clearCookie('token', {
         httpOnly: true,
-        secure: false
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict"
       })
         .send({ success: true })
     })
@@ -142,8 +144,8 @@ async function run() {
       const email = req.query.email;
       const query = { user_email: email };
 
-      if(req.user.email !== req.query.email){
-        return res.status(403).send({message: 'forbidden access'})
+      if (req.user.email !== req.query.email) {
+        return res.status(403).send({ message: 'forbidden access' })
       }
 
       const result = await applicationCollection.find(query).toArray();
@@ -173,7 +175,7 @@ async function run() {
       res.send(result);
     })
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
